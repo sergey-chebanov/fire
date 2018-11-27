@@ -15,6 +15,8 @@ import (
 	"vast/parser"
 )
 
+var y = 100
+
 var x = str.ToUpper("blah")
 
 var p = fmt.Println
