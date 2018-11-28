@@ -12,7 +12,8 @@ import (
 	str "strings"
 	"sync"
 	"time"
-	"vast/parser"
+
+	parser "github.com/sergey-chebanov/fire/vast/parser"
 )
 
 var y = 100
