@@ -9,16 +9,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	str "strings"
 	"sync"
 	"time"
 
 	parser "github.com/sergey-chebanov/fire/vast/parser"
 )
-
-var y = 100
-
-var x = str.ToUpper("blah")
 
 var p = fmt.Println
 
