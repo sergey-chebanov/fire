@@ -9,7 +9,7 @@ type TestTask struct {
 	t *testing.T
 }
 
-func (task *TestTask) run() error {
+func (task *TestTask) Run() error {
 	task.t.Log("added new task")
 	return nil
 }
@@ -20,7 +20,7 @@ func init() {
 
 func TestFuncTask0(t *testing.T) {
 
-	pool := New(5, Config{collectStat: true})
+	pool := New(5, Config{CollectStat: true})
 
 	test := &TestTask{t: t}
 
@@ -35,7 +35,7 @@ func TestFuncTask0(t *testing.T) {
 
 func TestFuncTask1(t *testing.T) {
 
-	pool := New(100, Config{collectStat: true})
+	pool := New(100, Config{CollectStat: true})
 
 	testData := make(chan int)
 
@@ -57,7 +57,7 @@ func TestFuncTask1(t *testing.T) {
 
 	for n := 0; n < 20000; n++ {
 		t.Log("added new task")
-		pool.Append(&FuncTask{Task: x(n)})
+		pool.Append(TaskFunc(x(n)))
 	}
 
 	pool.Close()

@@ -1,12 +1,9 @@
 package gopool
 
-//FuncTask helps to make and
-type FuncTask struct {
-	Task func() error
-	Err  error
-}
+//TaskFunc helps to make and
+type TaskFunc func() error
 
-func (task *FuncTask) run() error {
-	task.Err = task.Task()
-	return task.Err
+//Run calls f()
+func (f TaskFunc) Run() error {
+	return f()
 }

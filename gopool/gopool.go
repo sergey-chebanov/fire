@@ -9,7 +9,7 @@ import (
 
 //Task is an abstract interface tasks for the Pool should comply to
 type Task interface {
-	run() error
+	Run() error
 }
 
 type runStat struct {
@@ -28,7 +28,7 @@ type Pool struct {
 
 //Config is a holder of setting for pool initization. See WithStat.
 type Config struct {
-	collectStat bool
+	CollectStat bool
 }
 
 //Stat is a record of stats
@@ -120,7 +120,7 @@ func New(N int, config Config) *Pool {
 		tasks: make(chan Task),
 	}
 
-	if config.collectStat {
+	if config.CollectStat {
 		pool.collectStats()
 	}
 
@@ -139,7 +139,7 @@ func New(N int, config Config) *Pool {
 			defer pool.Done()
 			for task := range pool.tasks {
 
-				err, dur := runAndMeasure(task.run)
+				err, dur := runAndMeasure(task.Run)
 
 				if err != nil {
 					fmt.Println(err)
