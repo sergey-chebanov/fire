@@ -10,7 +10,7 @@ import (
 	"github.com/sergey-chebanov/fire/gopool"
 )
 
-var pool = gopool.New(1, gopool.Config{CollectStat: true})
+var pool = gopool.New(10, gopool.Config{CollectStat: true})
 
 var ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello, client")
@@ -27,7 +27,7 @@ type X struct {
 func (x X) Run() error {
 	t := x.t
 	request := func() (err error) {
-		res, err := http.Get("http://ya.ru")
+		res, err := http.Get(ts.URL)
 		if err != nil {
 			t.Error(err)
 			return
@@ -40,15 +40,18 @@ func (x X) Run() error {
 			t.Error(err)
 			return
 		}
-
-		t.Logf("%s", greeting)
+		_ = greeting
+		//t.Logf("%s", greeting)
 		return
 	}
 	return request()
 }
 
 func TestIt(t *testing.T) {
+	//time.Sleep(1000 * time.Millisecond)
+
 	for i := 0; i < 100; i++ {
+		//go X{t}.Run()
 		pool.Append(X{t})
 	}
 

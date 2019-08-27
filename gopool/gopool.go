@@ -24,6 +24,7 @@ type Pool struct {
 	//collecting stat
 	completed chan runStat
 	Stat      chan Stat
+	statClose func()
 }
 
 //Config is a holder of setting for pool initization. See WithStat.
@@ -42,39 +43,43 @@ func (pool *Pool) collectStats() {
 	pool.completed = make(chan runStat)
 	pool.Stat = make(chan Stat)
 
+	var (
+		completedStat int
+		errorStat     int
+		durationStat  []time.Duration
+	)
+
+	resetStat := func() {
+		completedStat, errorStat = 0, 0
+		durationStat = durationStat[:0]
+	}
+
+	sendStat := func() {
+		average := time.Duration(0)
+		for _, dur := range durationStat {
+			average += dur
+		}
+		if len(durationStat) > 0 {
+			average /= time.Duration(len(durationStat))
+		}
+
+		log.Println("Stat: ", average, completedStat)
+
+		//try to send stat
+		select {
+		case pool.Stat <- Stat{completedStat, time.Duration(average)}:
+		default:
+		}
+	}
+
+	tick := time.Tick(time.Second)
+
+	stopped := sync.WaitGroup{}
+	stopped.Add(1)
+
 	//stats
 	go func() {
-
-		var (
-			completedStat int
-			errorStat     int
-			durationStat  []time.Duration
-		)
-
-		resetStat := func() {
-			completedStat, errorStat = 0, 0
-			durationStat = durationStat[:0]
-		}
-
-		sendStat := func() {
-			average := time.Duration(0)
-			for _, dur := range durationStat {
-				average += dur
-			}
-			if len(durationStat) > 0 {
-				average /= time.Duration(len(durationStat))
-			}
-
-			log.Println("Stat: ", average, completedStat)
-
-			//try to send stat
-			select {
-			case pool.Stat <- Stat{completedStat, time.Duration(average)}:
-			default:
-			}
-		}
-
-		tick := time.Tick(time.Second)
+		defer stopped.Done()
 
 		for {
 			stop, statReady := false, false
@@ -105,11 +110,16 @@ func (pool *Pool) collectStats() {
 			}
 
 			if stop {
-				log.Print("stat receiver stoped")
+				log.Println("stat receiver stoped")
 				break
 			}
 		}
 	}()
+
+	pool.statClose = func() {
+		close(pool.completed)
+		stopped.Wait()
+	}
 
 	return
 }
@@ -133,8 +143,8 @@ func New(N int, config Config) *Pool {
 	}
 
 	//goroutines pool
+	pool.Add(N)
 	for i := 0; i < N; i++ {
-		pool.Add(1)
 		go func() {
 			defer pool.Done()
 			for task := range pool.tasks {
@@ -166,7 +176,8 @@ func (pool *Pool) Append(task Task) {
 func (pool *Pool) Close() {
 	close(pool.tasks)
 	pool.Wait()
-	//time.Sleep(time.Second)
 
-	close(pool.completed)
+	if pool.statClose != nil {
+		pool.statClose()
+	}
 }
