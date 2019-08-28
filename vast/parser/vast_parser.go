@@ -5,8 +5,9 @@ import (
 	"fmt"
 )
 
+//VAST used for unmarshaling VAST XML
 type VAST struct {
-	Error string `xml:"Error"`
+	Error      string `xml:"Error"`
 	Impression string `xml:"Ad>InLine>Impression"`
 	Creative   []struct {
 		ID             int `xml:"id,attr"`
@@ -17,6 +18,7 @@ type VAST struct {
 	} `xml:"Ad>InLine>Creatives>Creative"`
 }
 
+//Parse create a VAST from string
 func Parse(data []byte) *VAST {
 
 	v := VAST{}

@@ -10,8 +10,6 @@ import (
 	"github.com/sergey-chebanov/fire/gopool"
 )
 
-var pool = gopool.New(10, gopool.Config{CollectStat: true})
-
 var ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello, client")
 }))
@@ -46,6 +44,8 @@ func (x X) Run() error {
 	}
 	return request()
 }
+
+var pool = gopool.New(10, gopool.Config{CollectStat: true})
 
 func TestIt(t *testing.T) {
 	//time.Sleep(1000 * time.Millisecond)

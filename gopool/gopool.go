@@ -12,11 +12,6 @@ type Task interface {
 	Run() error
 }
 
-type runStat struct {
-	err      error
-	duration time.Duration
-}
-
 //Pool is a struct that holds everything needed for pool running
 type Pool struct {
 	sync.WaitGroup
@@ -80,6 +75,7 @@ func (pool *Pool) collectStats() {
 	//stats
 	go func() {
 		defer stopped.Done()
+		log.Println("stat receiver started")
 
 		for {
 			stop, statReady := false, false
@@ -110,7 +106,7 @@ func (pool *Pool) collectStats() {
 			}
 
 			if stop {
-				log.Println("stat receiver stoped")
+				log.Println("stat receiver stopped")
 				break
 			}
 		}
@@ -122,6 +118,11 @@ func (pool *Pool) collectStats() {
 	}
 
 	return
+}
+
+type runStat struct {
+	err      error
+	duration time.Duration
 }
 
 //New creates and initialize a new pool.
