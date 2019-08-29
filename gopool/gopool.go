@@ -50,15 +50,15 @@ func (pool *Pool) collectStats() {
 	}
 
 	sendStat := func() {
-		average := time.Duration(0)
+		average := 0.0
 		for _, dur := range durationStat {
-			average += dur
+			average += float64(dur)
 		}
 		if len(durationStat) > 0 {
-			average /= time.Duration(len(durationStat))
+			average /= float64(len(durationStat))
 		}
 
-		log.Println("Stat: ", average, completedStat)
+		log.Println("Stat: ", time.Duration(average), completedStat)
 
 		//try to send stat
 		select {
@@ -143,12 +143,23 @@ func New(N int, config Config) *Pool {
 		return
 	}
 
+	id := func(run func() error) (err error, dur time.Duration) {
+		err = run()
+		return
+	}
+
 	//goroutines pool
 	pool.Add(N)
 	for i := 0; i < N; i++ {
 		go func() {
 			defer pool.Done()
 			for task := range pool.tasks {
+
+				runAndMeasure := runAndMeasure
+
+				if pool.completed == nil {
+					runAndMeasure = id
+				}
 
 				err, dur := runAndMeasure(task.Run)
 
@@ -157,10 +168,12 @@ func New(N int, config Config) *Pool {
 				}
 
 				//should it be wrapped in go?
-				select {
-				case pool.completed <- runStat{err: err, duration: dur}:
-				case <-time.After(10 * time.Millisecond):
-					log.Println("runStat dropped. Waiting too long")
+				if pool.completed != nil {
+					select {
+					case pool.completed <- runStat{err: err, duration: dur}:
+					case <-time.After(10 * time.Millisecond):
+						log.Println("runStat dropped. Waiting too long")
+					}
 				}
 			}
 		}()

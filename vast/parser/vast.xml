@@ -1,5 +1,4 @@
 <VAST xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vast.xsd" version="3.0">
-    blahblah
     <Ad id="31423" sequence="0">
         <InLine>
             <AdSystem version="1.0">1.0</AdSystem>
