@@ -30,6 +30,7 @@ type Config struct {
 //Stat is a record of stats
 type Stat struct {
 	Completed       int
+	Errors          int
 	AverageDuration time.Duration
 }
 
@@ -58,11 +59,11 @@ func (pool *Pool) collectStats() {
 			average /= float64(len(durationStat))
 		}
 
-		log.Println("Stat: ", time.Duration(average), completedStat)
+		//log.Println("Stat: ", time.Duration(average), completedStat)
 
 		//try to send stat
 		select {
-		case pool.Stat <- Stat{completedStat, time.Duration(average)}:
+		case pool.Stat <- Stat{completedStat, errorStat, time.Duration(average)}:
 		default:
 		}
 	}
