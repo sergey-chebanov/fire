@@ -91,7 +91,7 @@ func (pool *Pool) collectStats() {
 				if stat.err == nil {
 					completedStat++
 				} else {
-					fmt.Println(stat.err)
+					log.Println(stat.err)
 					errorStat++
 				}
 

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -53,16 +52,34 @@ func connect() *http.Client {
 
 }
 
+func request(client *http.Client, url string) func() error {
+	request := func() (err error) {
+		res, err := client.Get(url)
+		if err != nil {
+			return
+		}
+
+		_, err = ioutil.ReadAll(res.Body)
+		defer res.Body.Close()
+
+		if err != nil {
+			return
+		}
+
+		//fmt.Printf("%s\n", body[:30])
+		//_ = body
+
+		if err != nil {
+			return
+		}
+		return
+	}
+	return request
+}
+
 func main() {
 
-	var ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
-	}))
-
 	url, concurrency, N, err := parseFlags()
-
-	url = ts.URL
-
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -70,39 +87,13 @@ func main() {
 
 	pool := gopool.New(concurrency, gopool.Config{CollectStat: true})
 
-	client := connect()
-
-	request := func(url string) func() (err error) {
-		requestInternal := func() (err error) {
-			res, err := client.Get(url)
-			if err != nil {
-				return
-			}
-
-			body, err := ioutil.ReadAll(res.Body)
-
-			//fmt.Printf("%s\n", body[:30])
-			_ = body
-
-			res.Body.Close()
-
-			if err != nil {
-				return
-			}
-			return
-		}
-		return requestInternal
-	}
-
+	//starting stat collecting
 	const (
 		increase = iota
 		decrease
 		keep
 	)
-
-	limiter := rate.NewLimiter(100, 1)
 	changeRate := make(chan int)
-
 	go func() {
 		for stat := range pool.Stat {
 			if stat.Errors == 0 {
@@ -112,13 +103,19 @@ func main() {
 		}
 	}()
 
+	//starting request dozer
+	client := connect()
+	limiter := rate.NewLimiter(100, 1)
 	for i := 0; i < N; i++ {
+
+		//waiting limit to request
 		if err := limiter.Wait(context.Background()); err != nil {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(request(url)))
+		pool.Append(gopool.TaskFunc(request(client, url)))
 
+		//check if we should increase rate
 		select {
 		case change := <-changeRate:
 			if change == increase {
@@ -131,6 +128,4 @@ func main() {
 	}
 
 	pool.Close()
-
-	fmt.Println(url)
 }
