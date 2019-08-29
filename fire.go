@@ -114,7 +114,7 @@ func main() {
 
 	for i := 0; i < N; i++ {
 		if err := limiter.Wait(context.Background()); err != nil {
-			fmt.Println(err)
+			log.Panic(err)
 			break
 		}
 		pool.Append(gopool.TaskFunc(request(url)))
