@@ -92,7 +92,7 @@ func TestSimpleRequests(t *testing.T) {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(request(client, url)))
+		pool.Append(gopool.TaskFunc(request(client, url, vastHanlder)))
 
 		//check if we should increase rate
 		select {

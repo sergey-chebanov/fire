@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -52,26 +50,15 @@ func connect() *http.Client {
 
 }
 
-func request(client *http.Client, url string) func() error {
+func request(client *http.Client, url string, responseHandler func(*http.Response) error) func() error {
 	request := func() (err error) {
 		res, err := client.Get(url)
 		if err != nil {
 			return
 		}
 
-		_, err = ioutil.ReadAll(res.Body)
-		defer res.Body.Close()
+		err = responseHandler(res)
 
-		if err != nil {
-			return
-		}
-
-		//fmt.Printf("%s\n", body[:30])
-		//_ = body
-
-		if err != nil {
-			return
-		}
 		return
 	}
 	return request
@@ -79,53 +66,81 @@ func request(client *http.Client, url string) func() error {
 
 func main() {
 
-	url, concurrency, N, err := parseFlags()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	var url string
+	flag.StringVar(&url, "url", "", "URL to test")
+	var concurrency int
+	flag.IntVar(&concurrency, "concurrency", 10, "Number of threads")
+	var N int
+	flag.IntVar(&N, "N", 0, "number of requests")
+	var duration int
+	flag.IntVar(&duration, "duration", 10, "test duration in seconds")
+	var rateLimit int
+	flag.IntVar(&rateLimit, "rate-limit", 100, "maximum RPM rate")
+
+	flag.Parse()
 
 	pool := gopool.New(concurrency, gopool.Config{CollectStat: true})
 
-	//starting stat collecting
-	const (
-		increase = iota
-		decrease
-		keep
-	)
-	changeRate := make(chan int)
+	//for non-blocking stat checking in the loop below we have to have blocking loop here
+	statRepeater := make(chan gopool.Stat)
 	go func() {
 		for stat := range pool.Stat {
-			if stat.Errors == 0 {
-				changeRate <- increase
-			}
 			log.Println("Stat: ", stat)
+			statRepeater <- stat
+		}
+	}()
+
+	//open connectio
+	client := connect()
+
+	//start routine for appending new urls
+	go func() {
+		for url := range urlsToAppend {
+			pool.Append(gopool.TaskFunc(request(client, string(url), eventHandler)))
 		}
 	}()
 
 	//starting request dozer
-	client := connect()
-	limiter := rate.NewLimiter(100, 1)
-	for i := 0; i < N; i++ {
+	const limitStart = 2
+	limiter := rate.NewLimiter(limitStart, 1)
+	limitChange := rate.Limit((rateLimit - limitStart) / (duration / 2))
 
+	timeIsUp := time.After(time.Duration(duration) * time.Second)
+
+	for {
 		//waiting limit to request
 		if err := limiter.Wait(context.Background()); err != nil {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(request(client, url)))
+		pool.Append(gopool.TaskFunc(request(client, url, vastHanlder)))
 
 		//check if we should increase rate
 		select {
-		case change := <-changeRate:
-			if change == increase {
-				limiter.SetLimit(limiter.Limit() + 10)
-				log.Println("Limit: ", limiter.Limit())
+		case <-timeIsUp:
+			log.Println("Time's Up")
+			return
+		case stat := <-statRepeater:
+			log.Println("Limit: ", limiter.Limit())
+
+			rateLimit := rate.Limit(rateLimit)
+
+			newLimit := limiter.Limit() + limitChange
+
+			if newLimit > rateLimit {
+				newLimit = rateLimit
+			}
+
+			if newLimit < limitStart {
+				newLimit = limitStart
+			}
+
+			if stat.Errors == 0 {
+				limiter.SetLimit(newLimit)
 			}
 		default:
 		}
-
 	}
-
 	pool.Close()
+	time.Sleep(time.Second)
 }

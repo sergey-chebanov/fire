@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/xml"
 	"fmt"
+	"regexp"
 )
 
 //VAST used for unmarshaling VAST XML
@@ -30,4 +31,27 @@ func Parse(data []byte) *VAST {
 	}
 
 	return &v
+}
+
+type EventsMap map[string]string
+
+var re = regexp.MustCompile(`(?m)<Impression>\s*<\!\[CDATA\[(.*?)\]\]>\s*</Impression>` +
+	`|<Tracking event="(.*?)">\s*<\!\[CDATA\[(.*?)\]\]>\s*</Tracking>` +
+	`|<Error>(.*?)</Error>`)
+
+func GetEvents(xml []byte) *EventsMap {
+
+	events := EventsMap{}
+
+	for _, event := range re.FindAllSubmatch(xml, -1) {
+		switch {
+		case len(event[1]) != 0:
+			events["impression"] = string(event[1])
+		case len(event[2]) != 0:
+			events[string(event[2])] = string(event[3])
+		case len(event[4]) != 0:
+			events["error"] = string(event[4])
+		}
+	}
+	return &events
 }

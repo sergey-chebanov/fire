@@ -184,7 +184,12 @@ func New(N int, config Config) *Pool {
 
 //Append schedule new task for running
 func (pool *Pool) Append(task Task) {
-	pool.tasks <- task
+	const t = 100
+	select {
+	case pool.tasks <- task:
+	case <-time.After(t * time.Millisecond):
+		log.Printf("All workers are busy. Can't append in expected time(%d ms). Task has been dropped", t)
+	}
 }
 
 //Close stops the pool and free all resources
