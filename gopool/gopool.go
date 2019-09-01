@@ -3,6 +3,7 @@ package gopool
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -91,7 +92,7 @@ func (pool *Pool) collectStats() {
 				if stat.err == nil {
 					completedStat++
 				} else {
-					log.Println(stat.err)
+					log.Println(stat.err, reflect.TypeOf(stat.err))
 					errorStat++
 				}
 

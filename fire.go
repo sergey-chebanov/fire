@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/net/http2"
 	"golang.org/x/time/rate"
 
 	"github.com/sergey-chebanov/fire/gopool"
@@ -24,7 +25,7 @@ func parseFlags() (url string, concurrency int, N int, err error) {
 	return
 }
 
-func connect() *http.Client {
+func connect() (client *http.Client, err error) {
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
@@ -32,6 +33,10 @@ func connect() *http.Client {
 	}
 
 	tr := http.DefaultTransport.(*http.Transport)
+	if err = http2.ConfigureTransport(tr); err != nil {
+		log.Printf("%v: Error while initilizing http2 client", err)
+		return
+	}
 	tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		if addr == "ads.nsc-lab.io:443" {
 			addr = "85.235.174.22:443"
@@ -44,11 +49,11 @@ func connect() *http.Client {
 	tr.MaxIdleConns = 500
 	tr.MaxIdleConnsPerHost = 500
 
-	return &http.Client{
+	client = &http.Client{
 		Transport: tr,
 		Timeout:   1 * time.Second,
 	}
-
+	return
 }
 
 func main() {
@@ -80,7 +85,11 @@ func main() {
 	}()
 
 	//open connectio
-	client := connect()
+	client, err := connect()
+
+	if err != nil {
+		log.Panicf("%v: can't init client", err)
+	}
 
 	eventURLs := make(chan vast.TimedURL)
 

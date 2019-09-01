@@ -89,7 +89,10 @@ func TestSimpleRequests(t *testing.T) {
 	}()
 
 	//starting request dozer
-	client := connect()
+	client, err := connect()
+	if err != nil {
+		t.Fatalf("%v: can't init client", err)
+	}
 	limiter := rate.NewLimiter(100, 1)
 	for i := 0; i < N; i++ {
 
