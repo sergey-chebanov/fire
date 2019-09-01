@@ -11,6 +11,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/sergey-chebanov/fire/gopool"
+	"github.com/sergey-chebanov/fire/vast"
 )
 
 func parseFlags() (url string, concurrency int, N int, err error) {
@@ -45,23 +46,9 @@ func connect() *http.Client {
 
 	return &http.Client{
 		Transport: tr,
-		Timeout:   5 * time.Second,
+		Timeout:   1 * time.Second,
 	}
 
-}
-
-func request(client *http.Client, url string, responseHandler func(*http.Response) error) func() error {
-	request := func() (err error) {
-		res, err := client.Get(url)
-		if err != nil {
-			return
-		}
-
-		err = responseHandler(res)
-
-		return
-	}
-	return request
 }
 
 func main() {
@@ -93,10 +80,13 @@ func main() {
 	//open connectio
 	client := connect()
 
+	eventURLs := make(chan vast.TimedURL)
+
 	//start routine for appending new urls
 	go func() {
-		for url := range urlsToAppend {
-			pool.Append(gopool.TaskFunc(request(client, string(url), eventHandler)))
+		for timedURL := range eventURLs {
+			pool.Append(gopool.TaskFunc(
+				vast.MakeRequest(client, string(timedURL.URL), nil)))
 		}
 	}()
 
@@ -113,7 +103,8 @@ func main() {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(request(client, url, vastHanlder)))
+		pool.Append(gopool.TaskFunc(
+			vast.MakeRequest(client, url, vast.Handler{URLsToAppend: eventURLs})))
 
 		//check if we should increase rate
 		select {

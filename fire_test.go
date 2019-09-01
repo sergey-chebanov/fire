@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/sergey-chebanov/fire/gopool"
+	"github.com/sergey-chebanov/fire/vast"
 	"golang.org/x/time/rate"
 )
 
@@ -58,8 +59,13 @@ func TestIt(t *testing.T) {
 }
 
 func TestSimpleRequests(t *testing.T) {
+	sample, err := ioutil.ReadFile("vast/parser/empty_vast.xml")
+	if err != nil {
+		t.Error(err)
+	}
+
 	var ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		fmt.Fprintln(w, sample)
 	}))
 
 	url, concurrency, N := ts.URL, 10, 100
@@ -92,7 +98,7 @@ func TestSimpleRequests(t *testing.T) {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(request(client, url, vastHanlder)))
+		pool.Append(gopool.TaskFunc(vast.MakeRequest(client, url, nil)))
 
 		//check if we should increase rate
 		select {

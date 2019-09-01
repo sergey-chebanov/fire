@@ -11,21 +11,19 @@ import (
 )
 
 type TimedURL struct {
-	url string
-	at  time.Time
+	URL string
+	At  time.Time
 }
 
-type Handler interface {
+type ResponseHandler interface {
 	handle(res *http.Response) error
 }
 
-type VastHandler struct {
+type Handler struct {
 	URLsToAppend chan TimedURL
 }
 
-func (vh VastHandler) handle(res *http.Response) (err error) {
-	defer res.Body.Close()
-
+func (vh Handler) handle(res *http.Response) (err error) {
 	body, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
@@ -34,8 +32,8 @@ func (vh VastHandler) handle(res *http.Response) (err error) {
 
 	events := getEvents(body)
 
-	if res.StatusCode%100 != 2 {
-		return fmt.Errorf("VAST Handler got not 2xx HTTP status ")
+	if res.StatusCode/100 != 2 {
+		return fmt.Errorf("Got %d: VAST Handler got not 2xx HTTP status ", res.StatusCode)
 	}
 
 	const quartile = 10 * time.Second
@@ -57,22 +55,26 @@ func (vh VastHandler) handle(res *http.Response) (err error) {
 type EventHandler struct{}
 
 func (vh EventHandler) handle(res *http.Response) (err error) {
-	defer res.Body.Close()
-	log.Println("Event Handler HTTP status = %d", res.StatusCode)
-	if res.StatusCode%100 != 2 {
+	log.Printf("Event Handler HTTP status = %d", res.StatusCode)
+	if res.StatusCode/100 != 2 {
 		return fmt.Errorf("Event Handler got not 2xx HTTP status ")
 	}
 	return nil
 }
 
-func MakeRequest(client *http.Client, url string, handler Handler) func() error {
+type RequestTask struct{}
+
+func MakeRequest(client *http.Client, url string, handler ResponseHandler) func() error {
 	request := func() (err error) {
 		res, err := client.Get(url)
 		if err != nil {
 			return
 		}
+		defer res.Body.Close()
 
-		err = handler.handle(res)
+		if handler != nil {
+			err = handler.handle(res)
+		}
 
 		return
 	}
