@@ -95,7 +95,7 @@ func main() {
 	//starting request dozer
 	const limitStart = 2
 	limiter := rate.NewLimiter(limitStart, 1)
-	limitChange := rate.Limit((rateLimit - limitStart) / (duration / 2))
+	limitChange := float64(rateLimit-limitStart) / float64(duration) * 2
 
 	timeIsUp := time.After(time.Duration(duration) * time.Second)
 
@@ -118,7 +118,7 @@ func main() {
 
 			rateLimit := rate.Limit(rateLimit)
 
-			newLimit := limiter.Limit() + limitChange
+			newLimit := rate.Limit(float64(limiter.Limit()) + limitChange)
 
 			if newLimit > rateLimit {
 				newLimit = rateLimit
