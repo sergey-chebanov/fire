@@ -59,7 +59,7 @@ func TestIt(t *testing.T) {
 }
 
 func TestSimpleRequests(t *testing.T) {
-	sample, err := ioutil.ReadFile("vast/parser/empty_vast.xml")
+	sample, err := ioutil.ReadFile("vast/samples/empty_vast.xml")
 	if err != nil {
 		t.Error(err)
 	}
