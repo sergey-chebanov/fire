@@ -53,6 +53,8 @@ func connect() *http.Client {
 
 func main() {
 
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
 	var url string
 	flag.StringVar(&url, "url", "", "URL to test")
 	var concurrency int
