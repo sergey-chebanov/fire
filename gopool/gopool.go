@@ -1,7 +1,6 @@
 package gopool
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"sync"
@@ -166,7 +165,7 @@ func New(N int, config Config) *Pool {
 				err, dur := runAndMeasure(task.Run)
 
 				if err != nil {
-					fmt.Println(err)
+					log.Printf("Gopool task failed: %s", err)
 				}
 
 				//should it be wrapped in go?

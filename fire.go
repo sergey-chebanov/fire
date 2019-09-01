@@ -79,14 +79,12 @@ func main() {
 	statRepeater := make(chan gopool.Stat)
 	go func() {
 		for stat := range pool.Stat {
-			log.Println("Stat: ", stat)
 			statRepeater <- stat
 		}
 	}()
 
 	//open connectio
 	client, err := connect()
-
 	if err != nil {
 		log.Panicf("%v: can't init client", err)
 	}
@@ -123,7 +121,7 @@ func main() {
 			log.Println("Time's Up")
 			return
 		case stat := <-statRepeater:
-			log.Println("Limit: ", limiter.Limit())
+			log.Printf("VAST Requests Limit: %f RPS -- Stat: %v", limiter.Limit(), stat)
 
 			rateLimit := rate.Limit(rateLimit)
 

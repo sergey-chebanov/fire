@@ -1,7 +1,6 @@
 package vast
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -27,7 +26,7 @@ func (vh Handler) handle(res *http.Response) (err error) {
 	body, err := ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		return
+		return fmt.Errorf("%s: VAST Handler can't read body from request", err)
 	}
 
 	events := getEvents(body)
@@ -46,7 +45,7 @@ func (vh Handler) handle(res *http.Response) (err error) {
 		vh.URLsToAppend <- TimedURL{(*events)["thirdQuartile"], now.Add(3 * quartile)}
 		vh.URLsToAppend <- TimedURL{(*events)["complete"], now.Add(4 * quartile)}
 	} else {
-		return errors.New("Got empty response (empty vast or not vast")
+		return fmt.Errorf("got empty response (empty vast or not vast). body='%s'", body)
 	}
 
 	return
@@ -68,7 +67,7 @@ func MakeRequest(client *http.Client, url string, handler ResponseHandler) func(
 	request := func() (err error) {
 		res, err := client.Get(url)
 		if err != nil {
-			return
+			return fmt.Errorf("%s: Request Failed", err)
 		}
 		defer res.Body.Close()
 
