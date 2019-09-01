@@ -10,6 +10,7 @@ import (
 //Task is an abstract interface tasks for the Pool should comply to
 type Task interface {
 	Run() error
+	ID() string
 }
 
 //Pool is a struct that holds everything needed for pool running

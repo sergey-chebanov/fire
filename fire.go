@@ -15,16 +15,6 @@ import (
 	"github.com/sergey-chebanov/fire/vast"
 )
 
-func parseFlags() (url string, concurrency int, N int, err error) {
-	flag.StringVar(&url, "url", "", "URL to test")
-	flag.IntVar(&concurrency, "concurrency", 10, "Number of threads")
-	flag.IntVar(&N, "N", 100, "number of requests")
-
-	flag.Parse()
-
-	return
-}
-
 func connect() (client *http.Client, err error) {
 	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
@@ -94,8 +84,10 @@ func main() {
 	//start routine for appending new urls
 	go func() {
 		for timedURL := range eventURLs {
-			pool.Append(gopool.TaskFunc(
-				vast.MakeRequest(client, string(timedURL.URL), nil)))
+			pool.Append(vast.Task{
+				Client:  client,
+				URL:     string(timedURL.URL),
+				Handler: nil})
 		}
 	}()
 
@@ -112,8 +104,10 @@ func main() {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(
-			vast.MakeRequest(client, url, vast.Handler{URLsToAppend: eventURLs})))
+		pool.Append(vast.Task{
+			Client:  client,
+			URL:     url,
+			Handler: vast.Handler{URLsToAppend: eventURLs}})
 
 		//check if we should increase rate
 		select {

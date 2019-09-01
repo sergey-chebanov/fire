@@ -14,15 +14,30 @@ import (
 	"golang.org/x/time/rate"
 )
 
+var client *http.Client
+
+func init() {
+	//starting request dozer
+	var err error
+	client, err = connect()
+	if err != nil {
+		log.Panicf("%v: can't init client", err)
+	}
+}
+
 type X struct {
 	t   *testing.T
 	URL string
 }
 
+func (x X) ID() string {
+	return x.URL
+}
+
 func (x X) Run() error {
 	t := x.t
 	request := func() (err error) {
-		res, err := http.Get(x.URL)
+		res, err := client.Get(x.URL)
 		if err != nil {
 			t.Error(err)
 			return
@@ -88,11 +103,6 @@ func TestSimpleRequests(t *testing.T) {
 		}
 	}()
 
-	//starting request dozer
-	client, err := connect()
-	if err != nil {
-		t.Fatalf("%v: can't init client", err)
-	}
 	limiter := rate.NewLimiter(100, 1)
 	for i := 0; i < N; i++ {
 
@@ -101,7 +111,11 @@ func TestSimpleRequests(t *testing.T) {
 			log.Panic(err)
 			break
 		}
-		pool.Append(gopool.TaskFunc(vast.MakeRequest(client, url, nil)))
+		pool.Append(vast.Task{
+			Client:  client,
+			URL:     url,
+			Handler: nil,
+		})
 
 		//check if we should increase rate
 		select {

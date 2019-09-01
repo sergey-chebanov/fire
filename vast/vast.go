@@ -3,16 +3,10 @@ package vast
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 	"time"
 )
-
-type TimedURL struct {
-	URL string
-	At  time.Time
-}
 
 type ResponseHandler interface {
 	handle(res *http.Response) error
@@ -20,6 +14,11 @@ type ResponseHandler interface {
 
 type Handler struct {
 	URLsToAppend chan TimedURL
+}
+
+type TimedURL struct {
+	URL string
+	At  time.Time
 }
 
 func (vh Handler) handle(res *http.Response) (err error) {
@@ -38,12 +37,12 @@ func (vh Handler) handle(res *http.Response) (err error) {
 	const quartile = 10 * time.Second
 
 	now := time.Now()
-	if url, ok := (*events)["start"]; ok {
+	if url, ok := events["start"]; ok {
 		vh.URLsToAppend <- TimedURL{url, now}
-		vh.URLsToAppend <- TimedURL{(*events)["firstQuartile"], now.Add(quartile)}
-		vh.URLsToAppend <- TimedURL{(*events)["midpoint"], now.Add(2 * quartile)}
-		vh.URLsToAppend <- TimedURL{(*events)["thirdQuartile"], now.Add(3 * quartile)}
-		vh.URLsToAppend <- TimedURL{(*events)["complete"], now.Add(4 * quartile)}
+		vh.URLsToAppend <- TimedURL{events["firstQuartile"], now.Add(quartile)}
+		vh.URLsToAppend <- TimedURL{events["midpoint"], now.Add(2 * quartile)}
+		vh.URLsToAppend <- TimedURL{events["thirdQuartile"], now.Add(3 * quartile)}
+		vh.URLsToAppend <- TimedURL{events["complete"], now.Add(4 * quartile)}
 	} else {
 		return fmt.Errorf("got empty response (empty vast or not vast). body='%s'", body)
 	}
@@ -51,44 +50,13 @@ func (vh Handler) handle(res *http.Response) (err error) {
 	return
 }
 
-type EventHandler struct{}
-
-func (vh EventHandler) handle(res *http.Response) (err error) {
-	log.Printf("Event Handler HTTP status = %d", res.StatusCode)
-	if res.StatusCode/100 != 2 {
-		return fmt.Errorf("Event Handler got not 2xx HTTP status ")
-	}
-	return nil
-}
-
-type RequestTask struct{}
-
-func MakeRequest(client *http.Client, url string, handler ResponseHandler) func() error {
-	request := func() (err error) {
-		res, err := client.Get(url)
-		if err != nil {
-			return fmt.Errorf("%s: Request Failed", err)
-		}
-		defer res.Body.Close()
-
-		if handler != nil {
-			err = handler.handle(res)
-		}
-
-		return
-	}
-	return request
-}
-
-type EventsMap map[string]string
-
 var eventsRegexp = regexp.MustCompile(`(?m)<Impression>\s*<\!\[CDATA\[(.*?)\]\]>\s*</Impression>` +
 	`|<Tracking event="(.*?)">\s*<\!\[CDATA\[(.*?)\]\]>\s*</Tracking>` +
 	`|<Error>(.*?)</Error>`)
 
-func getEvents(xml []byte) *EventsMap {
+func getEvents(xml []byte) map[string]string {
 
-	events := EventsMap{}
+	events := map[string]string{}
 
 	for _, event := range eventsRegexp.FindAllSubmatch(xml, -1) {
 		switch {
@@ -100,5 +68,5 @@ func getEvents(xml []byte) *EventsMap {
 			events["error"] = string(event[4])
 		}
 	}
-	return &events
+	return events
 }

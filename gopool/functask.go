@@ -1,9 +1,17 @@
 package gopool
 
 //TaskFunc helps to make and
-type TaskFunc func() error
+type TaskFunc struct {
+	F        func() error
+	TaskName string
+}
 
 //Run calls f()
 func (f TaskFunc) Run() error {
-	return f()
+	return f.F()
+}
+
+//ID get function name
+func (f TaskFunc) ID() string {
+	return f.TaskName
 }

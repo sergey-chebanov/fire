@@ -14,6 +14,10 @@ func (task *TestTask) Run() error {
 	return nil
 }
 
+func (task *TestTask) ID() string {
+	return "TestTask"
+}
+
 func init() {
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
 }
@@ -44,7 +48,6 @@ func TestFuncTask1(t *testing.T) {
 		for n := range testData {
 			test = append(test, n)
 		}
-		t.Logf("%v\n", test)
 	}()
 
 	x := func(N int) func() error {
@@ -57,7 +60,7 @@ func TestFuncTask1(t *testing.T) {
 
 	for n := 0; n < 20000; n++ {
 		t.Log("added new task")
-		pool.Append(TaskFunc(x(n)))
+		pool.Append(TaskFunc{F: x(n)})
 	}
 
 	pool.Close()
