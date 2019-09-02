@@ -115,7 +115,7 @@ func main() {
 			log.Println("Time's Up")
 			return
 		case stat := <-statRepeater:
-			log.Printf("VAST Requests Limit: %f RPS -- Stat: %v", limiter.Limit(), stat)
+			log.Printf("VAST Requests Limit: %.2f RPS -- Stat: %v", limiter.Limit(), stat)
 
 			rateLimit := rate.Limit(rateLimit)
 

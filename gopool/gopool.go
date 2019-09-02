@@ -2,7 +2,6 @@ package gopool
 
 import (
 	"log"
-	"reflect"
 	"sync"
 	"time"
 
@@ -63,7 +62,7 @@ func (pool *Pool) collectStats() {
 		for _, p := range []float64{50, 90, 99} {
 			if average, err := stats.Percentile(durationStat, p); err == nil {
 				//log.Printf("percentel: %f - %f", p, average)
-				timings = append(timings, Timing{p, time.Duration(average) / time.Millisecond})
+				timings = append(timings, Timing{p, time.Duration(average)})
 			} else {
 				log.Println(err.Error())
 			}
@@ -101,7 +100,7 @@ func (pool *Pool) collectStats() {
 				if stat.err == nil {
 					completedStat++
 				} else {
-					log.Println(stat.err, reflect.TypeOf(stat.err))
+					log.Printf("error: %s", stat.err)
 					errorStat++
 				}
 
@@ -174,9 +173,9 @@ func New(N int, config Config) *Pool {
 
 				err, dur := runAndMeasure(task.Run)
 
-				if err != nil {
+				/*if err != nil {
 					log.Printf("Gopool task failed: %s", err)
-				}
+				}*/
 
 				//should it be wrapped in go?
 				if pool.completed != nil {
