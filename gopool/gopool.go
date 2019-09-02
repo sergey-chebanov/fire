@@ -59,7 +59,7 @@ func (pool *Pool) collectStats() {
 
 	sendStat := func() {
 		timings := []Timing{}
-		for _, p := range []float64{50, 90, 99} {
+		for _, p := range []float64{50, 75, 90, 99} {
 			if average, err := stats.Percentile(durationStat, p); err == nil {
 				//log.Printf("percentel: %f - %f", p, average)
 				timings = append(timings, Timing{p, time.Duration(average)})
