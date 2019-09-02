@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/montanaflynn/stats"
 )
 
 //Task is an abstract interface tasks for the Pool should comply to
@@ -28,11 +30,16 @@ type Config struct {
 	CollectStat bool
 }
 
+type Timing struct {
+	Percent float64
+	T       time.Duration
+}
+
 //Stat is a record of stats
 type Stat struct {
 	Completed       int
 	Errors          int
-	AverageDuration time.Duration
+	AverageDuration []Timing
 }
 
 func (pool *Pool) collectStats() {
@@ -43,7 +50,7 @@ func (pool *Pool) collectStats() {
 	var (
 		completedStat int
 		errorStat     int
-		durationStat  []time.Duration
+		durationStat  stats.Float64Data
 	)
 
 	resetStat := func() {
@@ -52,19 +59,21 @@ func (pool *Pool) collectStats() {
 	}
 
 	sendStat := func() {
-		average := 0.0
-		for _, dur := range durationStat {
-			average += float64(dur)
-		}
-		if len(durationStat) > 0 {
-			average /= float64(len(durationStat))
+		timings := []Timing{}
+		for _, p := range []float64{50, 90, 99} {
+			if average, err := stats.Percentile(durationStat, p); err == nil {
+				//log.Printf("percentel: %f - %f", p, average)
+				timings = append(timings, Timing{p, time.Duration(average) / time.Millisecond})
+			} else {
+				log.Println(err.Error())
+			}
 		}
 
 		//log.Println("Stat: ", time.Duration(average), completedStat)
 
 		//try to send stat
 		select {
-		case pool.Stat <- Stat{completedStat, errorStat, time.Duration(average)}:
+		case pool.Stat <- Stat{completedStat, errorStat, timings}:
 		default:
 		}
 	}
@@ -96,7 +105,7 @@ func (pool *Pool) collectStats() {
 					errorStat++
 				}
 
-				durationStat = append(durationStat, stat.duration)
+				durationStat = append(durationStat, float64(stat.duration))
 
 			case <-tick:
 				statReady = true
