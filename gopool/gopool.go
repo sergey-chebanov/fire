@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
+	"github.com/sergey-chebanov/fire/stat"
 )
 
 //Task is an abstract interface tasks for the Pool should comply to
@@ -22,6 +23,7 @@ type Pool struct {
 	completed chan runStat
 	Stat      chan Stat
 	statClose func()
+	statX     *stat.Collector
 }
 
 //Config is a holder of setting for pool initization. See WithStat.
