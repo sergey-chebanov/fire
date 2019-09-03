@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/sergey-chebanov/fire/gopool"
+	"github.com/sergey-chebanov/fire/stat"
 	"github.com/sergey-chebanov/fire/vast"
 	"golang.org/x/time/rate"
 )
@@ -63,7 +64,7 @@ func TestIt(t *testing.T) {
 		fmt.Fprintln(w, "Hello, client")
 	}))
 
-	pool := gopool.New(10, gopool.Config{CollectStat: true})
+	pool := gopool.New(10, nil)
 
 	for i := 0; i < 100; i++ {
 		//go X{t}.Run()
@@ -85,7 +86,8 @@ func TestSimpleRequests(t *testing.T) {
 
 	url, concurrency, N := ts.URL, 10, 100
 
-	pool := gopool.New(concurrency, gopool.Config{CollectStat: true})
+	collector := stat.New("sqlite:fire.db")
+	pool := gopool.New(concurrency, collector)
 
 	//starting stat collecting
 	const (
@@ -95,8 +97,16 @@ func TestSimpleRequests(t *testing.T) {
 	)
 	changeRate := make(chan int)
 	go func() {
-		for stat := range pool.Stat {
-			if stat.Errors == 0 {
+		for stat := range collector.Completed() {
+			haveErrors := false
+			for err := range stat {
+				if err != nil {
+					haveErrors = true
+					break
+				}
+			}
+
+			if !haveErrors {
 				changeRate <- increase
 			}
 			log.Println("Stat: ", stat)

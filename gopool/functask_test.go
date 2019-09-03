@@ -3,6 +3,8 @@ package gopool
 import (
 	"log"
 	"testing"
+
+	"github.com/sergey-chebanov/fire/stat"
 )
 
 type TestTask struct {
@@ -24,7 +26,7 @@ func init() {
 
 func TestFuncTask0(t *testing.T) {
 
-	pool := New(5, Config{CollectStat: true})
+	pool := New(5, nil)
 
 	test := &TestTask{t: t}
 
@@ -39,7 +41,7 @@ func TestFuncTask0(t *testing.T) {
 
 func TestFuncTask1(t *testing.T) {
 
-	pool := New(100, Config{CollectStat: true})
+	pool := New(100, stat.New("blah: minor"))
 
 	testData := make(chan int)
 
