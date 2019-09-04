@@ -67,7 +67,7 @@ func main() {
 	collector := stat.New("sqlite:fire.db")
 	pool := gopool.New(concurrency, collector)
 
-	//open connectio
+	//open connection
 	client, err := connect()
 	if err != nil {
 		log.Panicf("%v: can't init client", err)
