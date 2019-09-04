@@ -12,6 +12,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/sergey-chebanov/fire/gopool"
+	"github.com/sergey-chebanov/fire/stat"
 	"github.com/sergey-chebanov/fire/vast"
 )
 
@@ -63,17 +64,10 @@ func main() {
 
 	flag.Parse()
 
-	pool := gopool.New(concurrency, gopool.Config{CollectStat: true})
+	collector := stat.New("sqlite:fire.db")
+	pool := gopool.New(concurrency, collector)
 
-	//for non-blocking stat checking in the loop below we have to have blocking loop here
-	statRepeater := make(chan gopool.Stat)
-	go func() {
-		for stat := range pool.Stat {
-			statRepeater <- stat
-		}
-	}()
-
-	//open connectio
+	//open connection
 	client, err := connect()
 	if err != nil {
 		log.Panicf("%v: can't init client", err)
@@ -114,8 +108,7 @@ func main() {
 		case <-timeIsUp:
 			log.Println("Time's Up")
 			return
-		case stat := <-statRepeater:
-			log.Printf("VAST Requests Limit: %.2f RPS -- Stat: %v", limiter.Limit(), stat)
+		case stat := <-collector.Completed():
 
 			rateLimit := rate.Limit(rateLimit)
 
@@ -129,7 +122,19 @@ func main() {
 				newLimit = limitStart
 			}
 
-			if stat.Errors == 0 {
+			errorsNum := 0
+			requestsNum := 0
+			for err, num := range stat {
+				requestsNum += num
+				if err != nil {
+					errorsNum += num
+				}
+			}
+
+			log.Printf("VAST Requests Limit: %.2f RPS -- Stat: %d, Errors: %d",
+				limiter.Limit(), requestsNum, errorsNum)
+
+			if requestsNum > 0 && errorsNum == 0 {
 				limiter.SetLimit(newLimit)
 			}
 		default:
