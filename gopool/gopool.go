@@ -10,8 +10,7 @@ import (
 
 //Task is an abstract interface tasks for the Pool should comply to
 type Task interface {
-	Run() error
-	ID() string
+	Run() stat.Record
 }
 
 //Pool is a struct that holds everything needed for pool running
@@ -22,12 +21,6 @@ type Pool struct {
 	collector stat.Collector
 }
 
-//Config is a holder of setting for pool initization. See WithStat.
-type Config struct {
-	Collector   stat.Collector
-	CollectStat bool
-}
-
 //New creates and initialize a new pool.
 func New(N int, collector stat.Collector) *Pool {
 	pool := &Pool{
@@ -35,16 +28,15 @@ func New(N int, collector stat.Collector) *Pool {
 		collector: collector,
 	}
 
-	runAndMeasure := func(run func() error) (err error, dur time.Duration) {
+	runAndMeasure := func(run func() stat.Record) stat.Record {
 		started := time.Now()
-		err = run()
-		dur = time.Since(started)
-		return
+		stat := run()
+		stat.Data["duration"] = int(time.Since(started))
+		return stat
 	}
 
-	id := func(run func() error) (err error, dur time.Duration) {
-		err = run()
-		return
+	id := func(run func() stat.Record) stat.Record {
+		return run()
 	}
 
 	//goroutines pool
@@ -60,10 +52,10 @@ func New(N int, collector stat.Collector) *Pool {
 					runAndMeasure = id
 				}
 
-				err, dur := runAndMeasure(task.Run)
+				stat := runAndMeasure(task.Run)
 
 				if collector != nil {
-					collector.Collect(stat.Record{Err: err, Data: map[string]interface{}{"duration": int(dur)}})
+					collector.Collect(stat)
 				}
 			}
 		}()

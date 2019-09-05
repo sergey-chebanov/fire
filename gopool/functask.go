@@ -1,5 +1,9 @@
 package gopool
 
+import (
+	"github.com/sergey-chebanov/fire/stat"
+)
+
 //TaskFunc helps to make and
 type TaskFunc struct {
 	F        func() error
@@ -7,11 +11,6 @@ type TaskFunc struct {
 }
 
 //Run calls f()
-func (f TaskFunc) Run() error {
-	return f.F()
-}
-
-//ID get function name
-func (f TaskFunc) ID() string {
-	return f.TaskName
+func (f TaskFunc) Run() stat.Record {
+	return stat.Record{Err: f.F(), Data: stat.Fields{"name": f.TaskName}}
 }

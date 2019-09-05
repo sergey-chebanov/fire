@@ -12,10 +12,12 @@ import (
 
 const waitTimeout = 10 //ms
 
+type Fields map[string]interface{}
+
 //Record is an atomic piece of information can be sent to the Collector. Can containt only Stringer
 type Record struct {
 	Err  error
-	Data map[string]interface{}
+	Data Fields
 }
 
 type saver interface {

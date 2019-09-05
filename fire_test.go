@@ -31,31 +31,28 @@ type X struct {
 	URL string
 }
 
-func (x X) ID() string {
-	return x.URL
-}
-
-func (x X) Run() error {
+func (x X) Run() (rec stat.Record) {
+	rec.Data = stat.Fields{"url": x.URL}
 	t := x.t
-	request := func() (err error) {
-		res, err := client.Get(x.URL)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		greeting, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
-
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		_ = greeting
-		//t.Logf("%s", greeting)
+	res, err := client.Get(x.URL)
+	rec.Err = err
+	if err != nil {
+		t.Error(err)
 		return
 	}
-	return request()
+
+	greeting, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	rec.Err = err
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	_ = greeting
+	//t.Logf("%s", greeting)
+	return
+
 }
 
 func TestIt(t *testing.T) {

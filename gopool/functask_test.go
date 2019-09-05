@@ -11,13 +11,9 @@ type TestTask struct {
 	t *testing.T
 }
 
-func (task *TestTask) Run() error {
+func (task *TestTask) Run() stat.Record {
 	task.t.Log("added new task")
-	return nil
-}
-
-func (task *TestTask) ID() string {
-	return "TestTask"
+	return stat.Record{Err: nil}
 }
 
 func init() {
