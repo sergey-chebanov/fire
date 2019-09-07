@@ -79,10 +79,10 @@ func (ch *clickhouseSaver) Save(recs []*record.Record) {
 
 		for _, rec := range recs {
 			if _, err := stmt.Exec(
-				rec.Data["sessionID"],
-				rec.Data["started"],
-				rec.Data["finished"],
-				rec.Data["url"],
+				rec.Value("sessionID"),
+				rec.Value("started"),
+				rec.Value("finished"),
+				rec.Value("url"),
 				fmt.Sprint(rec.Err),
 			); err != nil {
 				log.Fatal(err)

@@ -15,13 +15,12 @@ func Test_clickhouseSaver_save(t *testing.T) {
 		t.Errorf("can't init clickhouse connection: %s", err)
 	}
 
-	rec := record.Record{}
-	rec.Err = fmt.Errorf("nothing")
-	rec.Data = record.Fields{}
-	rec.Data["sessionID"] = time.Now().UnixNano()
-	rec.Data["started"] = time.Now().UnixNano()
-	rec.Data["finished"] = time.Now().UnixNano() + 100
-	rec.Data["url"] = "http://yandex.ru"
+	rec := record.New(fmt.Errorf("nothing")).
+		With("sessionID", time.Now().UnixNano()).
+		With("started", time.Now().UnixNano()).
+		With("finished", time.Now().UnixNano()).
+		With("sessionID", time.Now().UnixNano()).
+		With("url", "http://yandex.ru")
 
-	ch.Save([]*record.Record{&rec, &rec, &rec})
+	ch.Save([]*record.Record{rec, rec, rec})
 }

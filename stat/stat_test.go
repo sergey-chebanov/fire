@@ -19,30 +19,28 @@ func TestNew(t *testing.T) {
 		collector := New(saver)
 		defer collector.Close()
 
-		rec1 := &record.Record{}
-		rec1.Data = record.Fields{}
-		rec1.Data["sessionID"] = 588
-		rec1.Data["started"] = time.Now().UnixNano()
-		rec1.Data["finished"] = time.Now().UnixNano() + 100
-		rec1.Data["url"] = "http://yandex.ru"
+		//rec1 := &record.Record{}
+		rec1 := record.New(nil).
+			With("sessionID", 588).
+			With("started", time.Now().UnixNano()).
+			With("finished", time.Now().UnixNano()+100).
+			With("url", "http://yandex.ru")
 
 		collector.Collect(rec1)
 
-		rec2 := &record.Record{}
-		rec2.Data = record.Fields{}
-		rec2.Data["sessionID"] = 588
-		rec2.Data["started"] = time.Now().UnixNano()
-		rec2.Data["finished"] = time.Now().UnixNano() + 100
-		rec2.Data["url"] = "http://yandex.ru"
+		rec2 := record.New(nil).
+			With("sessionID", 588).
+			With("started", time.Now().UnixNano()).
+			With("finished", time.Now().UnixNano()+100).
+			With("url", "http://yandex.ru")
+
 		collector.Collect(rec2)
 
-		rec3 := &record.Record{}
-		rec3.Data = record.Fields{}
-		rec3.Data["sessionID"] = 588
-		rec3.Data["started"] = time.Now().UnixNano()
-		rec3.Data["finished"] = time.Now().UnixNano() + 100
-		rec3.Data["url"] = "http://yandex.ru"
-		rec3.Err = fmt.Errorf("nothing")
+		rec3 := record.New(fmt.Errorf("Test error")).
+			With("sessionID", 588).
+			With("started", time.Now().UnixNano()).
+			With("finished", time.Now().UnixNano()+100).
+			With("url", "http://yandex.ru")
 		collector.Collect(rec3)
 
 		s, ok := <-collector.Completed()

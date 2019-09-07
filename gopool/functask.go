@@ -12,5 +12,5 @@ type TaskFunc struct {
 
 //Run calls f()
 func (f TaskFunc) Run() record.Record {
-	return record.Record{Err: f.F(), Data: record.Fields{"name": f.TaskName}}
+	return *record.New(f.F()).With("name", f.TaskName)
 }

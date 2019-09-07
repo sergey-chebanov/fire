@@ -56,7 +56,6 @@ func (x X) Run() (rec record.Record) {
 	_ = greeting
 	//t.Logf("%s", greeting)
 	return
-
 }
 
 func TestIt(t *testing.T) {
