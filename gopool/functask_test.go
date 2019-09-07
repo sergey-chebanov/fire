@@ -5,15 +5,17 @@ import (
 	"testing"
 
 	"github.com/sergey-chebanov/fire/stat"
+	"github.com/sergey-chebanov/fire/stat/record"
+	"github.com/sergey-chebanov/fire/stat/saver"
 )
 
 type TestTask struct {
 	t *testing.T
 }
 
-func (task *TestTask) Run() stat.Record {
+func (task *TestTask) Run() record.Record {
 	task.t.Log("added new task")
-	return stat.Record{Err: nil}
+	return record.Record{Err: nil}
 }
 
 func init() {
@@ -37,7 +39,11 @@ func TestFuncTask0(t *testing.T) {
 
 func TestFuncTask1(t *testing.T) {
 
-	pool := New(100, stat.New("blah: minor"))
+	saver, err := saver.New("clickhouse:http://127.0.0.1:9000?debug=true")
+	if err != nil {
+		log.Panicf("Can't init saver %s", err)
+	}
+	pool := New(100, stat.New(saver))
 
 	testData := make(chan int)
 

@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/sergey-chebanov/fire/stat"
+	"github.com/sergey-chebanov/fire/stat/record"
 )
 
 //Task is an abstract interface tasks for the Pool should comply to
 type Task interface {
-	Run() stat.Record
+	Run() record.Record
 }
 
 //Pool is a struct that holds everything needed for pool running
@@ -28,14 +29,22 @@ func New(N int, collector stat.Collector) *Pool {
 		collector: collector,
 	}
 
-	runAndMeasure := func(run func() stat.Record) stat.Record {
+	sessionID := time.Now().UnixNano()
+
+	runAndMeasure := func(run func() record.Record) record.Record {
 		started := time.Now()
 		stat := run()
-		stat.Data["duration"] = int(time.Since(started))
+		finished := time.Now()
+
+		//TODO: not a go way. Should use some predefined constants
+		stat.Data["started"] = started.UnixNano()
+		stat.Data["duration"] = int(finished.Sub(started))
+		stat.Data["finished"] = finished.UnixNano()
+		stat.Data["sessionID"] = sessionID
 		return stat
 	}
 
-	id := func(run func() stat.Record) stat.Record {
+	id := func(run func() record.Record) record.Record {
 		return run()
 	}
 
@@ -55,7 +64,7 @@ func New(N int, collector stat.Collector) *Pool {
 				stat := runAndMeasure(task.Run)
 
 				if collector != nil {
-					collector.Collect(stat)
+					collector.Collect(&stat)
 				}
 			}
 		}()

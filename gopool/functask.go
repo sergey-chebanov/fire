@@ -1,7 +1,7 @@
 package gopool
 
 import (
-	"github.com/sergey-chebanov/fire/stat"
+	"github.com/sergey-chebanov/fire/stat/record"
 )
 
 //TaskFunc helps to make and
@@ -11,6 +11,6 @@ type TaskFunc struct {
 }
 
 //Run calls f()
-func (f TaskFunc) Run() stat.Record {
-	return stat.Record{Err: f.F(), Data: stat.Fields{"name": f.TaskName}}
+func (f TaskFunc) Run() record.Record {
+	return record.Record{Err: f.F(), Data: record.Fields{"name": f.TaskName}}
 }

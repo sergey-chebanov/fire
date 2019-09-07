@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sergey-chebanov/fire/stat/saver"
+
 	"golang.org/x/net/http2"
 	"golang.org/x/time/rate"
 
@@ -64,7 +66,11 @@ func main() {
 
 	flag.Parse()
 
-	collector := stat.New("sqlite:fire.db")
+	saver, err := saver.New("clickhouse:http://127.0.0.1:9000")
+	if err != nil {
+		log.Panicf("Can't init saver %s", err)
+	}
+	collector := stat.New(saver)
 	pool := gopool.New(concurrency, collector)
 
 	//open connection

@@ -3,8 +3,9 @@ package vast
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 
-	"github.com/sergey-chebanov/fire/stat"
+	"github.com/sergey-chebanov/fire/stat/record"
 )
 
 //Task is an implementation of gopool.Task interfaces. It should be used for gopool.Pool as a Task
@@ -15,8 +16,9 @@ type Task struct {
 }
 
 //Run makes an HTTP request via the client and handle response with Handler
-func (task Task) Run() (rec stat.Record) {
-	rec.Data = stat.Fields{"url": task.URL}
+func (task Task) Run() (rec record.Record) {
+	rec.With("url", task.URL)
+
 	resp, err := task.Client.Get(task.URL)
 	if err != nil {
 		rec.Err = fmt.Errorf("%s: Request Failed", err)
@@ -26,6 +28,7 @@ func (task Task) Run() (rec stat.Record) {
 
 	if task.Handler != nil {
 		rec.Err = task.Handler.handle(resp)
+		rec.Data["handler"] = reflect.TypeOf(task.Handler)
 	}
 
 	return

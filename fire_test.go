@@ -9,6 +9,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/sergey-chebanov/fire/stat/record"
+	"github.com/sergey-chebanov/fire/stat/saver"
+
 	"github.com/sergey-chebanov/fire/gopool"
 	"github.com/sergey-chebanov/fire/stat"
 	"github.com/sergey-chebanov/fire/vast"
@@ -31,8 +34,9 @@ type X struct {
 	URL string
 }
 
-func (x X) Run() (rec stat.Record) {
-	rec.Data = stat.Fields{"url": x.URL}
+func (x X) Run() (rec record.Record) {
+
+	rec.With("url", x.URL)
 	t := x.t
 	res, err := client.Get(x.URL)
 	rec.Err = err
@@ -61,7 +65,8 @@ func TestIt(t *testing.T) {
 		fmt.Fprintln(w, "Hello, client")
 	}))
 
-	pool := gopool.New(10, nil)
+	collector := stat.New(nil)
+	pool := gopool.New(10, collector)
 
 	for i := 0; i < 100; i++ {
 		//go X{t}.Run()
@@ -83,7 +88,11 @@ func TestSimpleRequests(t *testing.T) {
 
 	url, concurrency, N := ts.URL, 10, 100
 
-	collector := stat.New("sqlite:fire.db")
+	saver, err := saver.New("clickhouse:http://127.0.0.1:9000")
+	if err != nil {
+		t.Errorf("Can't create saver: %s", err)
+	}
+	collector := stat.New(saver)
 	pool := gopool.New(concurrency, collector)
 
 	//starting stat collecting
