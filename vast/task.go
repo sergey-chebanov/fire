@@ -16,8 +16,9 @@ type Task struct {
 }
 
 //Run makes an HTTP request via the client and handle response with Handler
-func (task Task) Run() (rec record.Record) {
-	rec.With("url", task.URL)
+func (task Task) Run() (rec *record.Record) {
+	rec = record.New(nil)
+	rec.URL = task.URL
 
 	resp, err := task.Client.Get(task.URL)
 	if err != nil {
@@ -28,7 +29,7 @@ func (task Task) Run() (rec record.Record) {
 
 	if task.Handler != nil {
 		rec.Err = task.Handler.handle(resp)
-		rec.Data["handler"] = reflect.TypeOf(task.Handler)
+		rec.With("handler", reflect.TypeOf(task.Handler))
 	}
 
 	return

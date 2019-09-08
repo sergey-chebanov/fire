@@ -74,9 +74,7 @@ func (bc *baseCollector) collectStats(saver saver.Interface) {
 		for _, rec := range records {
 			completed[rec.Err]++
 			if bc.printTimings {
-				if duration, err := rec.Int("duration"); err == nil {
-					durations = append(durations, float64(duration))
-				}
+				durations = append(durations, float64(rec.Duration()))
 			}
 		}
 

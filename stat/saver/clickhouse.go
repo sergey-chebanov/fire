@@ -6,7 +6,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/kshvakov/clickhouse"
+	_ "github.com/kshvakov/clickhouse" //using via database/sql
+	//_ "github.com/mailru/go-clickhouse" //using via database/sql
 	"github.com/sergey-chebanov/fire/stat/record"
 )
 
@@ -30,14 +31,10 @@ func newClickhouseSaver(arguments string) (Interface, error) {
 	}
 	ch.connect = connect
 
-	if err := ch.connect.Ping(); err != nil {
-		if exception, ok := err.(*clickhouse.Exception); ok {
-			fmt.Printf("[%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
-		} else {
-			fmt.Println(err)
-		}
-		return nil, fmt.Errorf("ping failed: %s", err)
-	}
+	// if err := ch.connect.Ping(); err != nil {
+	// 	fmt.Println(err)
+	// 	return nil, fmt.Errorf("ping failed: %s", err)
+	// }
 
 	_, err = ch.connect.Exec(`
 			CREATE TABLE IF NOT EXISTS performance.tests 
@@ -63,6 +60,12 @@ func (ch *clickhouseSaver) Save(recs []*record.Record) {
 	go func(recs []*record.Record) {
 		defer ch.Done()
 
+		if len(recs) == 0 {
+			log.Printf("Got empty records list -- skip")
+			return
+		}
+		// log.Printf("Got records: %+v", recs)
+
 		if ch == nil {
 			log.Fatal("clickhouse connection is not inited")
 		}
@@ -70,19 +73,21 @@ func (ch *clickhouseSaver) Save(recs []*record.Record) {
 		var (
 			tx, _   = ch.connect.Begin()
 			stmt, _ = tx.Prepare(`
-			INSERT INTO performance.tests 
-				(sessionId, started, finished, url, err) 
-			VALUES 
-				(?, ?, ?, ?, ?)`)
+			INSERT INTO performance.tests (
+				sessionId, started, finished, url, err
+			) VALUES (
+				?, ?, ?, ?, ?
+			)`)
 		)
 		defer stmt.Close()
 
 		for _, rec := range recs {
+			// log.Printf("adding rec: %v", *rec)
 			if _, err := stmt.Exec(
-				rec.Value("sessionID"),
-				rec.Value("started"),
-				rec.Value("finished"),
-				rec.Value("url"),
+				rec.SessionID,
+				rec.Start.UnixNano(),
+				rec.Finish.UnixNano(),
+				rec.URL,
 				fmt.Sprint(rec.Err),
 			); err != nil {
 				log.Fatal(err)
@@ -93,6 +98,8 @@ func (ch *clickhouseSaver) Save(recs []*record.Record) {
 		if err := tx.Commit(); err != nil {
 			log.Fatal(err)
 		}
+
+		log.Printf("saved %d", len(recs))
 	}(recs)
 }
 

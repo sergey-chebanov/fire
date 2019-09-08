@@ -66,7 +66,7 @@ func main() {
 
 	flag.Parse()
 
-	saver, err := saver.New("clickhouse:http://127.0.0.1:9000")
+	saver, err := saver.New("clickhouse", "http://127.0.0.1:9000")
 	if err != nil {
 		log.Panicf("Can't init saver %s", err)
 	}

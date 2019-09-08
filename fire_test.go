@@ -34,7 +34,9 @@ type X struct {
 	URL string
 }
 
-func (x X) Run() (rec record.Record) {
+func (x X) Run() (rec *record.Record) {
+
+	rec = record.New(nil)
 
 	rec.With("url", x.URL)
 	t := x.t
@@ -87,7 +89,7 @@ func TestSimpleRequests(t *testing.T) {
 
 	url, concurrency, N := ts.URL, 10, 100
 
-	saver, err := saver.New("clickhouse:http://127.0.0.1:9000")
+	saver, err := saver.New("clickhouse", "http://127.0.0.1:8123")
 	if err != nil {
 		t.Errorf("Can't create saver: %s", err)
 	}

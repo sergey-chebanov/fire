@@ -2,51 +2,57 @@ package record
 
 import (
 	"fmt"
+	"time"
 )
 
 type fields map[interface{}]interface{}
 
 //Record is an atomic piece of information can be sent to the Collector. Can containt only Stringer
 type Record struct {
-	Err  error
-	Data fields
+	Err       error
+	SessionID int64
+	Start     time.Time
+	Finish    time.Time
+	URL       string
+	data      fields
 }
 
 func New(err error) *Record {
-	return &Record{Err: err}
+	record := &Record{Err: err}
+	return record
 }
 
 func (r *Record) With(key interface{}, value interface{}) *Record {
-	if r.Data == nil {
-		r.Data = fields{}
+	if r.data == nil {
+		r.data = fields{}
 	}
 
-	r.Data[key] = value
+	r.data[key] = value
 
 	return r
 }
 
-func (r Record) Set(name string, stringer fmt.Stringer) {
-	r.Data[name] = stringer
-}
-
 func (r *Record) Value(key interface{}) interface{} {
-	if i, ok := r.Data[key]; ok {
+	if i, ok := r.data[key]; ok {
 		return i
 	}
 	return nil
 }
 
-func (r Record) Int(key interface{}) (int, error) {
-	if i, ok := r.Data[key].(int); ok {
+func (r *Record) Int(key interface{}) (int, error) {
+	if i, ok := r.data[key].(int); ok {
 		return i, nil
 	}
 	return 0, fmt.Errorf("Can't i{} cast to int")
 }
 
-func (r Record) String(key interface{}) (string, error) {
-	if i, ok := r.Data[key].(string); ok {
+func (r *Record) String(key interface{}) (string, error) {
+	if i, ok := r.data[key].(string); ok {
 		return i, nil
 	}
 	return "", fmt.Errorf("Can't i{} cast to int")
+}
+
+func (r *Record) Duration() time.Duration {
+	return r.Finish.Sub(r.Start)
 }
